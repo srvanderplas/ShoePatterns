@@ -1,0 +1,276 @@
+---
+title: "About This Project"
+format: gfm
+bibliography: refs.bib
+editor: visual
+---
+
+## Overall Problem Description
+
+Since roughly 2018, we've been trying to use computer vision models to identify shapes on shoe soles using human-friendly labels. There's no doubt that deep learning is an effective technique for working with shoes: @kongCrossDomainImageMatching2019; @fowlkesStatisticalModelsGeneration2018; @kongCrossDomainForensicShoeprint2017 have all been highly successful at using neural network feature vectors to e.g. find comparable shoes. However, at some point, it may be useful to interface with examiners directly, using the same descriptors they use in casework to describe shoes. 
+
+Unfortunately, we made the assumption that neural networks which could discriminate between e.g. an African and Asian Elephant could also discriminate between a circle and a square, or a hexagon and a circle, or a circle and the letter o. Fundamentally, the last example there illustrates the crux of the problem: our descriptors are sometimes imprecise relative to what a computer sees. Humans depend on context, using a combination of bottom-up processing of raw feature combinations and top-down processing to interpret these combinations relative to contextual information. 
+
+::: {layout-ncol=3}
+![Circles](http://srvanderplas.github.io/Presentations/2023-CSAFE-Shoe/images/circle_examples.png){width="128px"}
+
+![Quads](http://srvanderplas.github.io/Presentations/2023-CSAFE-Shoe/images/quad_examples.png){width="128px"}
+
+
+![???](http://srvanderplas.github.io/Presentations/2023-CSAFE-Shoe/images/dc_circle_quad.png){width="128px"}
+
+Our initial attempt worked with 256x256 px chunks and simplified the feature space into 9 different shapes, including circles and quadrilaterals. The third figure shows the fundamental problem: some shapes contain elements of each element but are not well-defined as any particular feature.
+
+:::
+
+One of the complexities of this problem is that we could reasonably pose the general shoe tread pattern labeling problem in 3 different ways:
+
+::: div
+
+::: {layout-ncol=3}
+Classification: same-size regions labeled with one or more classes
+
+Object Detection: Propose a bounding box and label for each object in an image
+
+Image segmentation: find regions of the image and label each region
+
+![Classification: same-size regions labeled with one or more classes](http://srvanderplas.github.io/Presentations/2023-CSAFE-Shoe/images/classification-shoe-example.png)
+
+![Object Detection: Propose a bounding box and label for each object in an image](http://srvanderplas.github.io/Presentations/2023-CSAFE-Shoe/images/obj-detection-shoe-example.png)
+
+![Image segmentation: find regions of the image and label each region](http://srvanderplas.github.io/Presentations/2023-CSAFE-Shoe/images/segmentation-shoe-example.png)
+
+:::
+
+Each method requires a different type of labeling schema, data format, and network construction; some of these formats are more tedious to generate than others.
+:::
+
+
+We have tried a variety of different methods for labeling shoes with features: using VGG16 and transfer learning to classify 256x256 px chunks of shoe images according to a [reduced set of features](https://github.com/srvanderplas/CoNNOR-paper), using FastAI and an object-detection approach to  generate proposal regions and label them appropriately, and even generating [synthetic shape data to determine whether VGG16 can distinguish the shapes](https://github.com/srvanderplas/Synthetic-Shapes-CNN) (short answer: yes, sort of, but not when we get to real images). 
+
+
+### Fundamental Problem
+
+Fundamentally, one of the problems I think we have at this point is that neural networks are trained on millions of human-annotated real-world photos. Even shoe soles are artificial compared to natural scenes. As these networks weren't trained on artificial patterns or layouts used to design shoes, it's likely that they have a lot of extra weights and layers that we don't need and that may get in the way.
+
+Unfortunately, to train one of these networks from scratch requires a LOT of data and a LOT of time. More data than we can ever manage to accumulate by having undergrads label things... and the data has to be well-labeled, with no confusion as to which class is which (something we've also had issues with in the past). 
+
+::: div
+
+![With apologies to Jonathan Stutzman, author of Llama Destroys the World.](Other/Llama-meme.png){width="50%"}
+
+With apologies to Jonathan Stutzman, author of Llama Destroys the World.
+
+:::
+
+So in order to train a network from scratch (or even to re-weight a network that already exists so that it is tuned precisely to our artificial type of data), we need to be able to generate piles of data. More data than any algorithm should ever need. And it has to be labeled correctly.
+
+## Generating artificial, pre-labeled shoe patterns
+
+We will work off of the following general scheme to generate labeled shoe data:
+
+
+1. We will start with a "region" diagram that meets the following specifications:
+    - Pattern size is 14"x8.5" (legal paper) 
+    - Shoe is 13" long, with width scaled to match
+    - Pattern is assumed to extend outward from the shoe to cover the entire area of the canvas (how best to do this will depend on the shoe)
+
+
+2. Each Region will be filled in with a pattern, randomly chosen from the pattern library (subject to constraints on e.g. region size, suitability, etc.)
+
+3. Once each region is filled in with a pattern, we will crop the overall region to the outline of a shoe. Each shape will be labeled with its' original label as well as if it has been cropped, etc. 
+
+4. (Optional) Post-process the shoe outline to e.g. fill in border "nubs" and other specific characteristics. We should be able to generate these according to programmatic instructions by wrapping shapes along a path.
+
+
+::: {layout-ncol=2}
+An athletic shoe outline with a single region covered in circles connected by bars.
+
+A high heel shoe outline in which the heel has diagonal brick shapes and the ball of the foot has parallel lines.
+
+![An athletic shoe outline with a single region covered in circles connected by bars.](Examples/Ex_1_Athletic_Bars.svg)
+
+![A high heel shoe outline in which the heel has diagonal brick shapes and the ball of the foot has parallel lines.](Examples/Ex_3_Heel_Lines.svg)
+
+
+
+A more complicated shoe that has many different regions. Rectangles at either end contain cursive characters, quadrilaterals in the middle have lines, and a region in the center has "snowflakes". The outside region of the shoe has small open circles.
+
+A more complicated work shoe outline where the outside rim of the heel and ball have vertical lines, the inside has a classic "slug" pattern, and the arch of the shoe contains rectangles with text and arcs while the main part of the arch region contains targets made up of arcs/broken circles.
+
+![A more complicated shoe that has many different regions. Rectangles at either end contain cursive characters, quadrilaterals in the middle have lines, and a region in the center has "snowflakes". The outside region of the shoe has small open circles.](Examples/Ex_2_Athletic_Complex.svg)
+
+
+![A more complicated work shoe outline where the outside rim of the heel and ball have vertical lines, the inside has a classic "slug" pattern, and the arch of the shoe contains rectangles with text and arcs while the main part of the arch region contains targets made up of arcs/broken circles.](Examples/Ex_4_Work_Arc.svg)
+:::
+
+## Processes
+
+### Regions
+
+1. Start by scaling the shoe image and centering the image on the canvas.
+2. Create a region or regions representing the first basic pattern on the shoe. The region can be any color so long as each pattern has a distinct color.
+3. Create additional region/regions for additional features on the shoe. Ensure that there are no gaps between regions; if necessary, use the subtraction tool to remove "chunks" from overlapping regions.
+4. Create additional region/regions for additional features on the shoe.
+5. Finally, delete the shoe image, leaving only the regions behind.
+6. Save the result as Region/Regions_{shoe type}_{id}.svg
+
+::: div
+
+::: {layout-ncol=5}
+Start by scaling the shoe image and centering the image on the canvas.
+
+Create a region or regions representing the first basic pattern on the shoe. The region can be any color so long as each pattern has a distinct color.
+
+Create additional region/regions for additional features on the shoe. Ensure that there are no gaps between regions; if necessary, use the subtraction tool to remove "chunks" from overlapping regions.
+
+Create additional region/regions for additional features on the shoe.
+
+Finally, delete the shoe image, leaving only the regions behind.
+
+
+![Start by scaling the shoe image and centering the image on the canvas.](Documentation/shoe-region-1.svg)
+
+![Create a region or regions representing the first basic pattern on the shoe. The region can be any color so long as each pattern has a distinct color.](Documentation/shoe-region-2.svg)
+
+![Create additional region/regions for additional features on the shoe. Ensure that there are no gaps between regions; if necessary, use the subtraction tool to remove "chunks" from overlapping regions.](Documentation/shoe-region-3.svg)
+
+![Create additional region/regions for additional features on the shoe.](Documentation/shoe-region-4.svg)
+
+![Finally, delete the shoe image, leaving only the regions behind.](Documentation/shoe-region-5.svg)
+
+
+:::
+
+Process for generating shoe regions.
+
+:::
+
+### Patterns
+
+This is subject to some modification as we figure out the best way to work with svgs on a code level and maintain attributes throughout path transformations, intersections, etc.
+
+My initial attempts have not accounted for the need to work with the SVG markup and have been focused on the geometric operations.
+
+1. Read the guidelines for the pattern description in the [shape manual](Documentation/SoleMate.pdf)
+
+2. Generate a layout of shapes consistent with the description in the manual. 
+    a. Start by generating a single shape. 
+    b. Once you are happy with the fundamentals of the shape, convert the object to a path (in Inkscape, Shift-Ctrl-C will do this)
+    c. Edit the individual nodes of the shape to achieve the result you want
+    d. Enter the XML editor and add an attribute with name "shape" and value {ShapeType}-{Shape-Description}.
+    e. Create many of these shapes 
+        - if the pattern guidelines specify that an array of these shapes is not within the guidelines, space the objects out more. The goal is to ensure that any given region should intersect one of your shapes, in whole or in part. 
+        - If there are possible variations on the allowed shapes (open/closed, aspect ratios, etc.) then please include some of these variations in your layout so that the network can generalize to the important attributes
+
+
+::: div
+
+::: {layout-ncol=3}
+Select a pattern description from the [Documentation](Documentation/SoleMate.pdf).
+
+Generate a representative starting shape using the tools in Inkscape. In this case, I used the regular polygon figure.
+
+Convert the object to a path to edit the finer details. Use node-by-node adjustments of points to get the shape you want. If a curved shape, use Bezier curves to get the right curve.
+
+![Select a pattern description from the documentation.](Documentation/pattern-0.png)
+
+
+![Generate a representative starting shape using the tools in Inkscape. In this case, I used the regular polygon figure.](Documentation/pattern-1.png)
+
+![Convert the object to a path to edit the finer details. Use node-by-node adjustments of points to get the shape you want. If a curved shape, use Bezier curves to get the right curve.](Documentation/pattern-2.png)
+
+
+Enter the XML editor and add an attribute with the name "shape" and value {ShapeType}-{Shape-Description}.
+
+Create many of these shapes. Vary the shape aspect ratio (if allowed by the description) and other characteristics to provide maximum robustness to the NN.
+
+Save the file as Pattern/Pattern-{ShapeType}_{Shape_Description}.svg
+
+![Enter the XML editor and add an attribute with the name "shape" and value {ShapeType}-{Shape-Description}.
+](Documentation/pattern-3.png)
+
+![Create many of these shapes. Vary the shape aspect ratio (if allowed by the description) and other characteristics to provide maximum robustness to the NN.](Documentation/pattern-4.png)
+
+![Save the file as Pattern/Pattern-{ShapeType}_{Shape_Description}.svg
+](Documentation/pattern-5.png)
+
+:::
+
+Process for generating shoe patterns.
+
+:::
+
+Notes: 
+
+- We will have to conduct additional checks to ensure that pattern objects are within the region
+- We will likely need some logic to shrink the SVG scale down for certain regions. 
+
+### Outlines
+
+1. Obtain an image of the shoe. Crop to exclude extra white-space using GIMP before pasting into Inkscape.
+
+2. Lock the dimensions of the shoe image so that width scales with height. Scale the image to 13" wide.
+
+3. Center the image horizontally and vertically on the page.
+
+4. Trace around the shoe sole with the Bezier curve tool. Use the node adjustment tool to tweak the resulting shape.
+
+5. Draw a rectangle over the entire page. Make this rectangle filled black, with no border. Convert the rectangle to a path.
+
+6. Subtract your shoe sole shape from the rectangle. Delete the underlying shoe image.
+
+7. Save the resulting file as Outline/Outline_{Type}_{#}.svg
+
+
+
+::: div
+
+::: {layout-ncol=3}
+Obtain an image of the shoe. Crop to exclude extra white-space using GIMP before pasting into Inkscape.
+
+Lock the dimensions of the shoe image so that width scales with height. Scale the image to 13" wide.
+
+Center the image horizontally and vertically on the page.
+
+![Obtain an image of the shoe. Crop to exclude extra white-space using GIMP before pasting into Inkscape.
+](Documentation/outline-1.png)
+
+
+![Lock the dimensions of the shoe image so that width scales with height. Scale the image to 13" wide.
+](Documentation/outline-2.png)
+
+![Center the image horizontally and vertically on the page.](Documentation/outline-3.png)
+
+
+Trace around the shoe sole with the Bezier curve tool. Use the node adjustment tool to tweak the resulting shape.
+
+Draw a rectangle over the entire page. Make this rectangle filled black, with no border. Convert the rectangle to a path.
+
+Subtract your shoe sole shape from the rectangle. Delete the underlying shoe image.
+
+
+![Trace around the shoe sole with the Bezier curve tool. Use the node adjustment tool to tweak the resulting shape](Documentation/outline-4.png)
+
+![Draw a rectangle over the entire page. Make this rectangle filled black, with no border. Convert the rectangle to a path.](Documentation/outline-5.png)
+
+![Subtract your shoe sole shape from the rectangle](Documentation/outline-6.png)
+
+Delete the underlying shoe image.
+
+Save the resulting file as Outline/Outline_{Type}_{#}.svg
+
+Done!
+
+![Delete the underlying shoe image.](Documentation/outline-7.png)
+
+
+![Save the resulting file as Outline/Outline_{Type}_{#}.svg](Outline/Outline_Athletic_3.svg)
+
+:::
+
+Process for generating shoe outlines
+
+:::
+
+## References
