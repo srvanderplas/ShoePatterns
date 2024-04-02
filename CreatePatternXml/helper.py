@@ -1,4 +1,4 @@
-def GenerateColor(rand=True, print=False):
+def generateColor(rand=True, print=False):
     '''
     Randomly generating a color hexcode'''
     import random
