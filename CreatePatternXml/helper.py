@@ -40,8 +40,33 @@ def rotate(point: list, origin: list, degrees) -> list:
         xNew = 0
     if np.abs(yNew) < 10**(-6):
         yNew = 0
-    return [xNew, yNew]
+    return [xNew, yNew], radians
 
 
-# if __name__ == "__main__":
-#     print(rotate([1,0], [0,0], degrees=180 ))
+
+
+
+
+# import matplotlib.pyplot as plt
+# from matplotlib.image import imread
+# from PIL import Image
+
+# # Read the SVG file
+# svg_file = "C:\Users\HUA\Desktop\drawing.svg"
+
+
+# from PIL import Image
+
+# # Display the PNG image
+# img = Image.open(png_file)
+# img.show()
+
+# # Display the SVG image
+# img = imread("C:\\Users\\HUA\\Desktop\\drawing30.svg")
+# plt.imshow(img)
+# plt.axis('off')  # Turn off axis
+# plt.show()
+
+if __name__ == "__main__":
+    # print(rotate([1,0], [0,0], degrees=180 ))
+    pass

@@ -2,7 +2,6 @@ import numpy as np
 import helper
 import xml.etree.ElementTree as ET
 
-
 # Because of the wierd transformation system in SVG
 # The transmations have to follow rules:
 #   1, Follow Affine matrix way: Scaling + Rotation + transltion
@@ -83,8 +82,6 @@ class Ellipse:
         self.xmax = self.cx1 + self.rx1
         self.ymax = self.cy1 + self.ry1
 
-        return self
-
 
     def rotate(self, degree):
         """keep track of true parameters after rotation, only rotate against central point
@@ -124,7 +121,6 @@ class Ellipse:
         # xs = [leftPointNew[0], rightPointNew[0], topPointNew[0], bottomPointNew[0]]
         # ys = [leftPointNew[1], rightPointNew[1], topPointNew[1], bottomPointNew[1]]
         # self.xmin, self.xmax, self.ymin, self.ymax = min(xs), max(xs), min(ys), max(ys)
-        return self
     
     def translate(self, tx, ty=0):
         if "scale" in self.transform.keys():
@@ -135,8 +131,12 @@ class Ellipse:
         self.xmin, self.xmax, self.ymin, self.ymax = self.xmin+tx*xScale, self.xmax+tx*yScale, self.ymin+ty*xScale, self.ymax+ty*yScale
         self.transform['translate'] = (tx, ty)
 
-        return self
+    
+    @property
+    def values(self):
+         return repr({"cx": self.cx, "cy": self.cy, 'rx':self.rx, 'ry':self.ry, "transform": self.transform})
 
+    @property
     def simpleEllipse(self):
         """After three transformations: SRT, we can create a new ellipse object from what has been done
            Only rotate operation needs to be kept, the other two operations can be integrated into parameter change
@@ -146,8 +146,16 @@ class Ellipse:
                                 [self.xmin, self.ymin, self.xmax, self.ymax])
         return clearUpEllipse
 
-    def svg() -> object:
-        pass
+    def writeSvg(self, xml=None) -> object:
+        # Write an cllipse object for later use, can't make a whole xml
+        # SHOULD I WRITE A NEW FUNCTION TO DO THIS??
+
+        if xml == None:
+            #  Create a new xml file
+            pass
+        else:
+            pass
+            #  continue writing with the xml file
         # return svg
 
     def coco() -> object:
