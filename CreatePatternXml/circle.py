@@ -87,7 +87,7 @@ class Circle:
         """After three transformations: SRT, we can create a new ellipse object from what has been done
            Only rotate operation needs to be kept, the other two operations can be integrated into parameter change
         """
-        clearUpEllipse = Ellipse(self.cx1, self.cy1, self.r1, 
+        clearUpEllipse = Circle(self.cx1, self.cy1, self.r1, 
                                 {'rotate': self.transform['rotate']}, 
                                 [self.xmin, self.ymin, self.xmax, self.ymax])
         return clearUpEllipse
