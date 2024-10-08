@@ -26,9 +26,9 @@ def elePathType(elePath):
         return "CubicBezier"
     if isinstance(elePath, svgelement.svgelements.QuadraticBezier):
         return "QuadraticBezier"
-    if isinstance(elePath, svgelements.svgelements.Close):
+    if isinstance(elePath, svgelement.svgelements.Close):
         return "Close"
-    if isinstance(elePath, svgelements.svgelements.Arc):
+    if isinstance(elePath, svgelement.svgelements.Arc):
         return "Arc"
 
 def arc_rotation(EleArc):
